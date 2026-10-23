@@ -20,7 +20,6 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write   # necesario para OIDC (GitHub -> AWS sin Access Keys)
   contents: read
 
 env:
@@ -36,10 +35,12 @@ jobs:
 
       - name: Comprobar secretos
         env:
-          ROLE: ${{ secrets.AWS_ROLE_ARN }}
+          ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           PASS: ${{ secrets.DB_PASSWORD }}
         run: |
-          [ -n "$ROLE" ] || { echo "::error::Falta el secreto AWS_ROLE_ARN (ver README)"; exit 1; }
+          [ -n "$ID" ] || { echo "::error::Falta el secreto AWS_ACCESS_KEY_ID"; exit 1; }
+          [ -n "$SECRET" ] || { echo "::error::Falta el secreto AWS_SECRET_ACCESS_KEY"; exit 1; }
           [ -n "$PASS" ] || { echo "::error::Falta el secreto DB_PASSWORD (ver README)"; exit 1; }
 
       - uses: actions/setup-dotnet@v4
@@ -56,10 +57,11 @@ jobs:
           (cd out && zip -qr ../urponline-publish.zip .)
           ls -lh urponline-publish.zip
 
-      - name: Conectar con AWS (OIDC, sin Access Keys)
+      - name: Configurar credenciales de AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Subir el ZIP a S3
